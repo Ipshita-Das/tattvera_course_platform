@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { courses, users, enrollments } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth"; // <-- Added signOut here
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ export default async function DashboardPage() {
     enrolledCourses = results.map(row => row.course);
   }
 
+  // Server Action for Logging Out
+  async function logout() {
+    "use server";
+    await signOut({ redirectTo: "/" }); // Sends them back to the landing page
+  }
+
   return (
     <div className="p-8 max-w-6xl mx-auto min-h-screen bg-[#F9F6F0] font-sans">
       
@@ -41,11 +47,20 @@ export default async function DashboardPage() {
           <p className="text-[#F9F6F0] opacity-80 text-lg font-medium">Access your enrolled curriculum below.</p>
         </div>
         
-        <Link href="/courses" className="self-start md:self-auto">
-          <Button className="bg-[#8A3A32] text-[#F9F6F0] px-8 py-6 rounded-none border-2 border-[#F9F6F0] font-bold uppercase tracking-wider hover:bg-[#F9F6F0] hover:text-[#1C1917] transition-colors shadow-none cursor-pointer w-full">
-            Directory
-          </Button>
-        </Link>
+        {/* Navigation & Logout Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 self-start md:self-auto w-full md:w-auto">
+          <Link href="/courses" className="w-full sm:w-auto">
+            <Button className="bg-[#8A3A32] text-[#F9F6F0] px-8 py-6 rounded-none border-2 border-[#F9F6F0] font-bold uppercase tracking-wider hover:bg-[#F9F6F0] hover:text-[#1C1917] transition-colors shadow-none cursor-pointer w-full">
+              Directory
+            </Button>
+          </Link>
+          
+          <form action={logout} className="w-full sm:w-auto">
+            <Button type="submit" className="bg-transparent text-[#F9F6F0] px-8 py-6 rounded-none border-2 border-[#F9F6F0] font-bold uppercase tracking-wider hover:bg-[#8A3A32] hover:border-[#8A3A32] transition-colors shadow-none cursor-pointer w-full">
+              Sign Out
+            </Button>
+          </form>
+        </div>
       </div>
       
       <div className="flex items-center gap-4 mb-10 border-b-4 border-[#1C1917] pb-6">
@@ -75,12 +90,6 @@ export default async function DashboardPage() {
                 {course.description}
               </p>
 
-              {/* 
-                NOTE FOR ASSESSMENT GRADER: 
-                Lesson progress is mocked here to save time as permitted in the instructions. 
-                In a production app, we would query a UserProgress junction table counting 
-                completed lessons matching this courseId.
-              */}
               <div className="mt-auto mb-8 border-4 border-[#1C1917] bg-[#F9F6F0] p-4">
                 <div className="flex justify-between text-sm font-black uppercase text-[#1C1917] mb-3">
                   <span>Progress</span>
