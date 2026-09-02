@@ -47,36 +47,55 @@ export default async function CourseDetailPage({
 
   async function handleCheckout() {
     "use server";
-    if (!dbUserId) return;
+    
+    let redirectUrl = "";
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+    try {
+      if (!dbUserId) return;
 
-    const stripeSession = await stripe.checkout.sessions.create({
-      success_url: `${process.env.APP_URL}/courses/${course.id}?success=true`,
-      cancel_url: `${process.env.APP_URL}/courses/${course.id}?canceled=true`,
-      payment_method_types: ["card"],
-      mode: "payment",
-      billing_address_collection: "auto",
-      line_items: [
-        {
-          price_data: {
-            currency: "inr",
-            product_data: {
-              name: course.title,
-              description: course.description || undefined,
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+      
+      // Bulletproof URL generation: Fallback to Vercel's automatic URL if APP_URL fails
+      const domain = process.env.APP_URL || `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+
+      const stripeSession = await stripe.checkout.sessions.create({
+        success_url: `${domain}/courses/${course.id}?success=true`,
+        cancel_url: `${domain}/courses/${course.id}?canceled=true`,
+        payment_method_types: ["card"],
+        mode: "payment",
+        billing_address_collection: "auto",
+        line_items: [
+          {
+            price_data: {
+              currency: "inr",
+              product_data: {
+                name: course.title,
+                description: course.description || undefined,
+              },
+              // Explicitly cast to Number to prevent string-math errors
+              unit_amount: Math.round(Number(course.price) * 100), 
             },
-            unit_amount: Math.round(course.price * 100), // Stripe expects amounts in paise/cents
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        metadata: {
+          userId: dbUserId,
+          courseId: course.id,
         },
-      ],
-      metadata: {
-        userId: dbUserId,
-        courseId: course.id,
-      },
-    });
+      });
 
-    redirect(stripeSession.url!);
+      redirectUrl = stripeSession.url!;
+      
+    } catch (error: any) {
+      // This will force the REAL error to print in Vercel's Runtime Logs
+      console.error("STRIPE CHECKOUT CRASHED:", error.message);
+      return; 
+    }
+
+    // Next.js redirect must be called OUTSIDE of a try/catch block
+    if (redirectUrl) {
+      redirect(redirectUrl);
+    }
   }
 
   const courseChapters = await db.select().from(chapters).where(eq(chapters.courseId, course.id));
