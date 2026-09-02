@@ -52,8 +52,8 @@ export default async function CourseDetailPage({
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
     const stripeSession = await stripe.checkout.sessions.create({
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}?canceled=true`,
+      success_url: `${process.env.APP_URL}/courses/${course.id}?success=true`,
+      cancel_url: `${process.env.APP_URL}/courses/${course.id}?canceled=true`,
       payment_method_types: ["card"],
       mode: "payment",
       billing_address_collection: "auto",
