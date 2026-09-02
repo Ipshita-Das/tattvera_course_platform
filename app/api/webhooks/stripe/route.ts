@@ -4,9 +4,10 @@ import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { enrollments } from "@/lib/schema";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
-
 export async function POST(req: Request) {
+  // Move the Stripe initialization inside the function!
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+  
   const body = await req.text();
   const headersList = await headers();
   const signature = headersList.get("Stripe-Signature") as string;
@@ -24,16 +25,13 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
   }
 
-  // Handle the specific event requested by the rubric
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     
-    // Retrieve the IDs we passed in the metadata during checkout creation
     const userId = session.metadata?.userId;
     const courseId = session.metadata?.courseId;
 
     if (userId && courseId) {
-      // Securely insert the enrollment record!
       await db.insert(enrollments).values({
         userId,
         courseId,
