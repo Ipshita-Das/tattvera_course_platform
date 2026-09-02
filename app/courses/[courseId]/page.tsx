@@ -1,14 +1,22 @@
 import { db } from "@/lib/db";
 import { courses, chapters, lessons, users, enrollments } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { Button } from "@/components/ui/button";
+import Stripe from "stripe";
 
-export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+export default async function CourseDetailPage({ 
+  params,
+  searchParams 
+}: { 
+  params: Promise<{ courseId: string }>,
+  searchParams: Promise<{ success?: string, canceled?: string }>
+}) {
   const { courseId } = await params;
+  const { success, canceled } = await searchParams;
   const session = await auth();
 
   const courseData = await db.select().from(courses).where(eq(courses.id, courseId));
@@ -37,11 +45,38 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
     if (existingEnrollment.length > 0) isEnrolled = true;
   }
 
-  async function enrollUser() {
+  async function handleCheckout() {
     "use server";
     if (!dbUserId) return;
-    await db.insert(enrollments).values({ userId: dbUserId, courseId: course.id });
-    revalidatePath(`/courses/${course.id}`);
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+
+    const stripeSession = await stripe.checkout.sessions.create({
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}?canceled=true`,
+      payment_method_types: ["card"],
+      mode: "payment",
+      billing_address_collection: "auto",
+      line_items: [
+        {
+          price_data: {
+            currency: "inr",
+            product_data: {
+              name: course.title,
+              description: course.description || undefined,
+            },
+            unit_amount: Math.round(course.price * 100), // Stripe expects amounts in paise/cents
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId: dbUserId,
+        courseId: course.id,
+      },
+    });
+
+    redirect(stripeSession.url!);
   }
 
   const courseChapters = await db.select().from(chapters).where(eq(chapters.courseId, course.id));
@@ -50,6 +85,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
 
   return (
     <div className="min-h-screen bg-[#F9F6F0] pb-16 font-sans">
+      
       <div className="bg-[#8A3A32] border-b-8 border-[#1C1917] pt-12 pb-20 px-8 mb-12">
         <div className="max-w-4xl mx-auto">
           <Link href="/courses" className="mb-10 inline-block">
@@ -78,7 +114,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
                 </Button>
               </Link>
             ) : (
-              <form action={enrollUser}>
+              <form action={handleCheckout}>
                 <Button type="submit" className="bg-[#D4A373] text-[#1C1917] px-10 py-7 rounded-none border-4 border-[#1C1917] font-bold uppercase tracking-wider hover:bg-[#F9F6F0] transition-colors shadow-[6px_6px_0_#1C1917]">
                   Enroll in Course
                 </Button>
@@ -87,6 +123,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           </div>
         </div>
       </div>
+
+      {/* Stripe Payment Notifications */}
+      {success && (
+        <div className="bg-green-100 border-l-8 border-green-600 text-green-900 p-6 mb-8 max-w-4xl mx-auto shadow-md">
+          <h3 className="font-black text-xl uppercase tracking-wider mb-2">Payment Successful!</h3>
+          <p className="font-medium">Welcome to the course. Your enrollment is currently being processed. You will have full access to the lessons momentarily.</p>
+        </div>
+      )}
+      {canceled && (
+        <div className="bg-red-100 border-l-8 border-[#8A3A32] text-red-900 p-6 mb-8 max-w-4xl mx-auto shadow-md">
+          <h3 className="font-black text-xl uppercase tracking-wider mb-2">Payment Canceled</h3>
+          <p className="font-medium">Your checkout session was canceled. You have not been charged.</p>
+        </div>
+      )}
 
       <div id="syllabus" className="max-w-4xl mx-auto px-8">
         <div className="flex items-center gap-4 mb-10">
