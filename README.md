@@ -6,7 +6,7 @@ This project was built to demonstrate proficiency in server-side data fetching, 
 
 ### Project Links
 * **Live Deployment:** https://tattvera-course-platform.vercel.app/
-* **Video Walkthrough:** [Insert your Loom link here]
+* **Video Walkthrough:** Video 1 - https://www.loom.com/share/233547b3e8794d858ba00dcea4192c75 , Video 2 - https://www.loom.com/share/9be4a9ee6f644a97bc5700535c3574d1
 
 ---
 
