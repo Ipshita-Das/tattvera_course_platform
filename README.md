@@ -1,16 +1,16 @@
-# 🎓 Tattvera Course Platform (LMS)
+# Tattvera Course Platform (LMS)
 
 A production-grade, full-stack course platform built with Next.js (App Router), focusing on clean architecture, secure authentication, scalable payment infrastructure, and a unique **Warli-art inspired neo-brutalist UI**. 
 
 This project was built to demonstrate proficiency in server-side data fetching, relational database modeling, external API webhooks, and modern React patterns.
 
-### 🔗 Project Links
+### Project Links
 * **Live Deployment:** https://tattvera-course-platform.vercel.app/
 * **Video Walkthrough:** [Insert your Loom link here]
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 * **Framework:** Next.js 16.3 (App Router)
 * **Language:** TypeScript
@@ -23,7 +23,7 @@ This project was built to demonstrate proficiency in server-side data fetching, 
 
 ---
 
-## 🚀 Key Features & Architecture
+## Key Features & Architecture
 
 * **Authentication (Task 1):** Secure GitHub OAuth login via Auth.js. Protected routes intercept unauthenticated users attempting to access course material or checkouts.
 * **Data Access Layer (Task 2):** 5-table relational schema (User, Course, Chapter, Lesson, Enrollment) defined via Drizzle. **Zero direct database calls from the client**—all queries execute securely in Node.js via React Server Components.
@@ -36,7 +36,7 @@ This project was built to demonstrate proficiency in server-side data fetching, 
 
 ---
 
-## 💻 Local Setup Instructions
+## Local Setup Instructions
 
 **1. Clone the repository and install dependencies**
 \`\`\`bash
@@ -79,7 +79,7 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 
 ---
 
-## 🛡️ Security Notes & Future Scope
+## Security Notes & Future Scope
 
 * **Data Encapsulation:** The application strictly follows the DAL pattern. Database interactions (`db.select`, `db.insert`) are isolated within Server Components and Server Actions. The client side only receives standard JSON data.
 * **Enterprise Rate Limiting (Bonus Task B):** To implement enterprise-grade bot protection, I would integrate **Arcjet**. Wrapping the Auth endpoints and Enrollment actions with Arcjet's `shield` rule blocks automated scraping, and utilizing their `tokenBucket` algorithm limits checkout spam to prevent abuse.
